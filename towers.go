@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/bradfitz/iter"
 )
+
+const disks = 5
 
 type location int
 
@@ -29,9 +33,11 @@ func (l location) String() string {
 
 type towers []location
 
-func printDisk(d, width int) string {
-	d++
-	return strings.Repeat(" ", width-d) + strings.Repeat("=", d) + "|" + strings.Repeat("=", d) + strings.Repeat(" ", width-d)
+func printDisk(d int, bar ...string) string {
+	if len(bar) == 0 {
+		bar = []string{"|"}
+	}
+	return strings.Repeat(" ", disks-d) + strings.Repeat("=", d) + bar[0] + strings.Repeat("=", d) + strings.Repeat(" ", disks-d)
 }
 
 func printPillar(base string, t towers, l location) []string {
@@ -42,7 +48,7 @@ func printPillar(base string, t towers, l location) []string {
 	h := 0
 	for i := len(t) - 1; i >= 0; i-- {
 		if t[i] == l {
-			tower[h] = printDisk(i, len(t))
+			tower[h] = printDisk(i + 1)
 			h++
 		}
 	}
@@ -64,25 +70,88 @@ func (t towers) _print() {
 	printMerged(l, m, r)
 }
 
+type pillar [disks]int
+
+func printPillars(ps []pillar) {
+	for i := disks - 1; i >= 0; i-- {
+		fmt.Printf("%s %s %s\n", printDisk(ps[0][i]), printDisk(ps[1][i]), printDisk(ps[2][i]))
+	}
+}
+
+func shift(hover string, dest, src location) string {
+	if dest < src {
+		return hover[1:] + " "
+	}
+	return " " + hover[:len(hover)-1]
+}
+
+func delta(dest, src location) int {
+	if src == left && dest == right || src == right && dest == left {
+		return 4*disks + 4
+	}
+	return 2*disks + 2
+}
+
+func (t towers) move(dest, src location) {
+	pillars := make([]pillar, 3)
+	h := make([]int, 3)
+	for i := disks - 1; i >= 0; i-- {
+		l := t[i]
+		pillars[l][h[l]] = i + 1
+		h[l]++
+	}
+	//fmt.Println()
+	//printPillars(pillars)
+
+	for hh := h[src] - 1; hh+1 < disks; hh++ {
+		pillars[src][hh], pillars[src][hh+1] = 0, pillars[src][hh]
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println()
+		printPillars(pillars)
+	}
+	n := pillars[src][disks-1]
+	pillars[src][disks-1] = 0
+
+	var hover string
+	{
+		hs := []string{printDisk(0, " "), printDisk(0, " "), printDisk(0, " ")}
+		hs[src] = printDisk(n, " ")
+		hover = strings.Join(hs, " ")
+	}
+	time.Sleep(100 * time.Millisecond)
+	fmt.Println(hover)
+	printPillars(pillars)
+	for range iter.N(delta(dest, src)) {
+		time.Sleep(50 * time.Millisecond)
+		hover = shift(hover, dest, src)
+		fmt.Println(hover)
+		printPillars(pillars)
+	}
+
+	pillars[dest][disks-1] = n
+	for hhh := disks - 1; hhh-1 > h[dest]; hhh-- {
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println()
+		printPillars(pillars)
+		pillars[dest][hhh], pillars[dest][hhh-1] = 0, pillars[dest][hhh]
+	}
+}
+
 func move(src, dest, mid location, n int, t towers) {
 	if n > 1 {
 		move(src, mid, dest, n-1, t)
 	}
+	t.move(dest, src)
 	t[n-1] = dest
-	time.Sleep(1400 * time.Millisecond)
-	fmt.Println("\n")
-	fmt.Printf("%s -> %s\n", src, dest)
-	t._print()
-	//fmt.Printf("%s -> %s\n", src, dest)
 	if n > 1 {
 		move(mid, dest, src, n-1, t)
 	}
 }
 
 func main() {
-	t := make(towers, 9)
+	t := make(towers, disks)
 	fmt.Println("starting position")
 	t._print()
-	move(left, right, middle, 9, t)
-	//move("L", "R", "M", 9)
+	move(left, right, middle, disks, t)
+	t._print()
 }
