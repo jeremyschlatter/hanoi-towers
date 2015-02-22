@@ -8,7 +8,7 @@ import (
 	"github.com/bradfitz/iter"
 )
 
-const disks = 5
+const disks = 3
 
 type location int
 
@@ -17,19 +17,6 @@ const (
 	middle
 	right
 )
-
-func (l location) String() string {
-	switch l {
-	case left:
-		return "left"
-	case middle:
-		return "middle"
-	case right:
-		return "right"
-	default:
-		panic("unreachable")
-	}
-}
 
 type towers []location
 
@@ -100,8 +87,6 @@ func (t towers) move(dest, src location) {
 		pillars[l][h[l]] = i + 1
 		h[l]++
 	}
-	//fmt.Println()
-	//printPillars(pillars)
 
 	for hh := h[src] - 1; hh+1 < disks; hh++ {
 		pillars[src][hh], pillars[src][hh+1] = 0, pillars[src][hh]
@@ -150,8 +135,9 @@ func move(src, dest, mid location, n int, t towers) {
 
 func main() {
 	t := make(towers, disks)
-	fmt.Println("starting position")
 	t._print()
 	move(left, right, middle, disks, t)
+	fmt.Println()
 	t._print()
+	fmt.Println("success!")
 }
