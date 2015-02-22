@@ -1,3 +1,4 @@
+// Command towers plays a towers of hanoi game.
 package main
 
 import (
